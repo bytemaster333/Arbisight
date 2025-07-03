@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  grafana:
+    build:
+      context: ./grafana
+      dockerfile: Dockerfile
+    container_name: stylus-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/var/lib/grafana/data
+      - ./data:/data
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=frser-sqlite-datasource
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_SMTP_ENABLED=false
+    restart: unless-stopped
+
+  watcher:
+    build:
+      context: ./watcher
+      dockerfile: Dockerfile
+    container_name: stylus-watcher
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

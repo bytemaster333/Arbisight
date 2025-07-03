@@ -1,0 +1,361 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 2,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "stylus-cli"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "format": "table",
+          "queryText": "SELECT \n  datetime(timestamp, 'unixepoch', 'localtime') AS timestamp,\n  command,\n  subcommand,\n  args,\n  output,\n  duration\nFROM logs\nORDER BY timestamp DESC\nLIMIT 100;\n",
+          "queryType": "table",
+          "rawQueryText": "SELECT \n  datetime(timestamp, 'unixepoch', 'localtime') AS timestamp,\n  command,\n  subcommand,\n  args,\n  output,\n  duration\nFROM logs\nORDER BY timestamp DESC\nLIMIT 100;\n",
+          "rawSql": "SELECT timestamp, command, subcommand, args, output, duration FROM logs ORDER BY timestamp DESC;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "📋 Full CLI Command Log",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "stylus-cli"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "timezone": [
+          "utc",
+          "browser"
+        ],
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "format": "time_series",
+          "queryText": "SELECT\n  timestamp AS time,\n  duration AS value\nFROM logs\nORDER BY timestamp DESC\nLIMIT 100;\n",
+          "queryType": "time series",
+          "rawQueryText": "SELECT\n  timestamp AS time,\n  duration AS value\nFROM logs\nORDER BY timestamp DESC\nLIMIT 100;\n",
+          "rawSql": "SELECT strftime('%s', timestamp) * 1000 AS time, duration AS value FROM logs WHERE timestamp >= datetime($__from / 1000, 'unixepoch') AND timestamp <= datetime($__to / 1000, 'unixepoch') ORDER BY timestamp ASC;",
+          "refId": "B",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "⏱ CLI Command Duration Over Time",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "time",
+            "mode": "inner"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "stylus-cli"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 11,
+        "x": 0,
+        "y": 19
+      },
+      "id": 3,
+      "options": {
+        "displayLabels": [
+          "name"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "format": "table",
+          "queryText": "SELECT \n  COALESCE(subcommand, 'unknown') AS metric,\n  COUNT(*) AS value\nFROM logs\nGROUP BY metric\nORDER BY value DESC;\n",
+          "queryType": "table",
+          "rawQueryText": "SELECT \n  COALESCE(subcommand, 'unknown') AS metric,\n  COUNT(*) AS value\nFROM logs\nGROUP BY metric\nORDER BY value DESC;\n",
+          "rawSql": "SELECT subcommand AS metric, COUNT(*) AS value FROM logs GROUP BY subcommand;",
+          "refId": "C",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "🔧 Subcommand Usage Breakdown",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "stylus-cli"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-RdYlGr"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 13,
+        "x": 11,
+        "y": 19
+      },
+      "id": 4,
+      "options": {
+        "displayMode": "lcd",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "format": "table",
+          "queryText": "SELECT\n  SUM(CASE WHEN LOWER(output) LIKE '%error%' THEN 1 ELSE 0 END) AS \"❌ Failure\",\n  SUM(CASE WHEN LOWER(output) NOT LIKE '%error%' THEN 1 ELSE 0 END) AS \"✅ Success\"\nFROM logs;\n",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  SUM(CASE WHEN LOWER(output) LIKE '%error%' THEN 1 ELSE 0 END) AS \"❌ Failure\",\n  SUM(CASE WHEN LOWER(output) NOT LIKE '%error%' THEN 1 ELSE 0 END) AS \"✅ Success\"\nFROM logs;\n",
+          "rawSql": "SELECT CASE exit_code WHEN 0 THEN 'Success' ELSE 'Failure' END AS metric, COUNT(*) AS value FROM logs GROUP BY metric;",
+          "refId": "D",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "✅ Success vs ❌ Failure",
+      "type": "bargauge"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "ArbiSight - Stylus CLI Telemetry Dashboard",
+  "uid": "20c9a135-04ff-49cb-8a20-c8700fdbde4f",
+  "version": 1
+}

@@ -1,0 +1,11 @@
+apiVersion: 1
+
+datasources:
+  - name: Stylus CLI DB
+    uid: stylus-cli
+    type: frser-sqlite-datasource
+    access: proxy
+    editable: true
+    isDefault: true
+    jsonData:
+      path: /data/stylus_logs.db
