@@ -48,7 +48,8 @@ if ! grep -q "function stylus_logger()" "$SHELL_RC"; then
 
   cat <<'EOF' >> "$SHELL_RC"
 
-# ArbiSight CLI Logger
+# ArbiSight CLI Logger (cross-platform)
+
 function stylus_logger() {
     START_TIME=$(date +%s.%N)
     TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
@@ -59,17 +60,17 @@ function stylus_logger() {
 
     COMMAND_FULL="$*"
 
-    if [[ "$COMMAND_FULL" =~ cargo[[:space:]]stylus([[:space:]]+([a-zA-Z0-9_-]+))?(.*) ]]; then
-        SUBCOMMAND="${BASH_REMATCH[2]:-unknown}"
-        ARGS="${BASH_REMATCH[3]}"
-    else
-        SUBCOMMAND="unknown"
-        ARGS=""
-    fi
+    COMMAND="cargo stylus"
+
+    SUBCOMMAND=$(echo "$COMMAND_FULL" | awk '{for(i=1;i<=NF;i++) if($i=="stylus") {print $(i+1); exit}}')
+    [[ -z "$SUBCOMMAND" ]] && SUBCOMMAND="unknown"
+
+    ARGS=$(echo "$COMMAND_FULL" | sed -E "s/.*stylus[[:space:]]+[^[:space:]]+[[:space:]]*//")
 
     SANITIZED_OUTPUT=$(echo "$OUTPUT" | head -c 1000 | tr '\n' ' ' | sed 's/"/\\"/g')
-    JSON="{\"timestamp\":\"$TIMESTAMP\", \"command\":\"$COMMAND_FULL\", \"subcommand\":\"$SUBCOMMAND\", \"args\":\"$ARGS\", \"output\":\"$SANITIZED_OUTPUT\", \"duration\":$DURATION}"
+    JSON="{\"timestamp\":\"$TIMESTAMP\", \"command\":\"$COMMAND\", \"subcommand\":\"$SUBCOMMAND\", \"args\":\"$ARGS\", \"output\":\"$SANITIZED_OUTPUT\", \"duration\":$DURATION}"
 
+    mkdir -p "$HOME/stylus-telemetry/data"
     echo "$JSON" >> "$HOME/stylus-telemetry/data/stylus_logs.jsonl"
     echo "$OUTPUT"
 }
@@ -92,19 +93,26 @@ fi
 # 7. Reload shell profile
 source "$SHELL_RC"
 
-# 8. Telegram Alert Setup (Optional)
-echo -n "Do you want to enable Telegram alert notifications? (y/n): "
-read TELE_ENABLE
+# 8. Alert Setup (Optional)
+echo -n "Do you want to enable alert notifications? (y/n): "
+read ALERT_ENABLE
 
-if [[ "$TELE_ENABLE" =~ ^[Yy]$ ]]; then
-  echo -n "Enter your Telegram bot token: "
-  read TELE_TOKEN
-  echo -n "Enter your Telegram chat ID: "
-  read TELE_CHATID
+if [[ "$ALERT_ENABLE" =~ ^[Yy]$ ]]; then
+  echo "Choose alert platform:"
+  echo "1) Telegram"
+  echo "2) Slack"
+  echo -n "Enter choice [1-2]: "
+  read ALERT_CHOICE
 
   mkdir -p grafana/provisioning/alerting
 
-  cat > grafana/provisioning/alerting/01-contact-points.yaml <<EOF
+  if [[ "$ALERT_CHOICE" == "1" ]]; then
+    echo -n "Enter your Telegram bot token: "
+    read TELE_TOKEN
+    echo -n "Enter your Telegram chat ID: "
+    read TELE_CHATID
+
+    cat > grafana/provisioning/alerting/01-contact-points.yaml <<EOF
 apiVersion: 1
 contactPoints:
   - orgId: 1
@@ -120,6 +128,34 @@ contactPoints:
           protect_content: false
         disableResolveMessage: false
 EOF
+
+    RECEIVER_NAME="telegram"
+    RECEIVER_UID="telegram-receiver"
+
+  elif [[ "$ALERT_CHOICE" == "2" ]]; then
+    echo -n "Enter your Slack webhook URL: "
+    read SLACK_WEBHOOK
+
+    cat > grafana/provisioning/alerting/01-contact-points.yaml <<EOF
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: slack
+    receivers:
+      - uid: slack-receiver
+        type: slack
+        settings:
+          url: "$SLACK_WEBHOOK"
+        disableResolveMessage: false
+EOF
+
+    RECEIVER_NAME="slack"
+    RECEIVER_UID="slack-receiver"
+
+  else
+    echo "❌ Invalid choice. Skipping alert setup."
+    exit 0
+  fi
 
   cat > grafana/provisioning/alerting/02-alert-rules.yaml <<EOF
 apiVersion: 1
@@ -141,12 +177,13 @@ groups:
             datasourceUid: stylus-cli
             model:
               rawSql: |
-                SELECT timestamp AS time, COUNT(*) AS value
+                SELECT timestamp AS time,
+                       COUNT(*) AS value
                 FROM logs
-                WHERE output LIKE '%error%'
-                AND timestamp >= strftime('%s', 'now', '-5 minutes')
+                WHERE lower(output) LIKE '%error%'
+                  AND timestamp >= strftime('%s', 'now', '-5 minutes')
                 GROUP BY strftime('%Y-%m-%d %H:%M', timestamp, 'unixepoch')
-                ORDER BY time ASC
+                HAVING COUNT(*) > 0
               format: table
               refId: A
           - refId: B
@@ -181,12 +218,12 @@ groups:
             Please check the logs for more information.
         isPaused: false
         notification_settings:
-          receiver: telegram
+          receiver: $RECEIVER_NAME
 EOF
 
-  echo "✅ Telegram alert rule and contact point created."
+  echo "✅ $RECEIVER_NAME alert rule and contact point created."
 else
-  echo "⏭️ Skipping Telegram alert integration."
+  echo "⏭️ Skipping alert integration."
 fi
 
 # 9. Start Docker Services
