@@ -70,8 +70,8 @@ function stylus_logger() {
     SANITIZED_OUTPUT=$(echo "$OUTPUT" | head -c 1000 | tr '\n' ' ' | sed 's/"/\\"/g')
     JSON="{\"timestamp\":\"$TIMESTAMP\", \"command\":\"$COMMAND\", \"subcommand\":\"$SUBCOMMAND\", \"args\":\"$ARGS\", \"output\":\"$SANITIZED_OUTPUT\", \"duration\":$DURATION}"
 
-    mkdir -p "$HOME/stylus-telemetry/data"
-    echo "$JSON" >> "$HOME/stylus-telemetry/data/stylus_logs.jsonl"
+    mkdir -p "$HOME/Arbisight/stylus-telemetry/data"
+    echo "$JSON" >> "$HOME/Arbisight/stylus-telemetry/data/stylus_logs.jsonl"
     echo "$OUTPUT"
 }
 
