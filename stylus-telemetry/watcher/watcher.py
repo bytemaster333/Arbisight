@@ -9,7 +9,7 @@ import time
 
 jsonl_path = Path("/data/stylus_logs.jsonl")
 db_path = Path("/data/stylus_logs.db")
-meta_path = Path("/data/stylus_logs.meta")  # JSONL'de en son hangi satır işlendi
+meta_path = Path("/data/stylus_logs.meta")
 
 def read_last_position():
     try:
@@ -25,7 +25,7 @@ def write_last_position(position):
 class JSONLHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path == str(jsonl_path):
-            print(f"🔄 {jsonl_path.name} değişti, veritabanı güncelleniyor...")
+            print(f"🔄 {jsonl_path.name} changed, updating the database...")
             update_database()
 
 def update_database():
@@ -50,19 +50,18 @@ def update_database():
     with open(jsonl_path, 'r') as file:
         for i, line in enumerate(file, start=1):
             if i <= last_position:
-                continue  # Bu satır daha önce işlendi
+                continue
             line = line.strip()
             if not line:
                 continue
             try:
                 data = json.loads(line)
 
-                # 🛠️ ISO formatlı timestamp varsa direkt parse edelim
                 timestamp_str = data.get("timestamp", "")
-                dt_obj = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')  # naive
-                dt_local = pytz.timezone("Europe/Istanbul").localize(dt_obj)   # Yerel saat olarak işaretle
-                dt_utc = dt_local.astimezone(timezone.utc)                     # UTC'ye çevir
-                timestamp_epoch = int(dt_utc.timestamp())                      # Epoch saniyesi olarak kaydet
+                dt_obj = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                dt_local = pytz.timezone("Europe/Istanbul").localize(dt_obj)
+                dt_utc = dt_local.astimezone(timezone.utc)
+                timestamp_epoch = int(dt_utc.timestamp())
 
                 cursor.execute('''
                     INSERT INTO logs (timestamp, command, subcommand, args, output, duration)
@@ -77,16 +76,16 @@ def update_database():
                 ))
                 new_position = i
             except Exception as e:
-                print(f"[⚠️] Satır {i} hata: {e}")
+                print(f"[⚠️] Line {i} error: {e}")
 
     conn.commit()
     conn.close()
     write_last_position(new_position)
-    print(f"✅ {new_position - last_position} yeni kayıt eklendi.")
+    print(f"✅ {new_position - last_position} add new.")
 
 if __name__ == "__main__":
-    print("👀 JSONL dosyası izleniyor...")
-    update_database()  # ilk başta dosyayı bir kere çalıştır
+    print("👀 Watching the JSONL file...")
+    update_database()
     event_handler = JSONLHandler()
     observer = Observer()
     observer.schedule(event_handler, path=str(jsonl_path.parent), recursive=False)
