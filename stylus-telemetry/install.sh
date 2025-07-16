@@ -29,15 +29,8 @@ else
   exit 1
 fi
 
-# 5. Clone repository
-REPO_URL="https://github.com/bytemaster333/Arbisight.git"
-INSTALL_DIR="$HOME/stylus-telemetry"
-
-if [ ! -d "$INSTALL_DIR" ]; then
-  git clone "$REPO_URL" "$INSTALL_DIR"
-else
-  echo "✅ Repository already cloned."
-fi
+# 5. Create Folder
+INSTALL_DIR="$HOME/ArbiSight/stylus-telemetry"
 
 cd "$INSTALL_DIR" || exit 1
 mkdir -p data
