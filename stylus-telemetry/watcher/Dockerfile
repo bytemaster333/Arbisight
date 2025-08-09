@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY watcher.py .
 
-RUN pip install watchdog
-RUN pip install pytz
+RUN pip install --no-cache-dir watchdog pytz requests
 
-CMD ["python", "watcher.py"]
+CMD ["python3", "-u", "watcher.py"]
