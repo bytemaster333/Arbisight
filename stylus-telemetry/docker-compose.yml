@@ -26,4 +26,7 @@ services:
     container_name: stylus-watcher
     volumes:
       - ./data:/data
+    env_file:
+      - .env
     restart: unless-stopped
+
