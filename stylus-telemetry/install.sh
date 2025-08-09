@@ -31,7 +31,6 @@ fi
 
 # 5. Create Folder
 INSTALL_DIR="$HOME/ArbiSight/stylus-telemetry"
-
 cd "$INSTALL_DIR" || exit 1
 mkdir -p data
 
@@ -86,9 +85,12 @@ fi
 # 7. Reload shell profile
 source "$SHELL_RC"
 
-# 8. Alert Setup (Optional)
+# 8. Alert Setup (via .env for watcher.py)
 echo -n "Do you want to enable alert notifications? (y/n): "
 read ALERT_ENABLE
+
+ENV_FILE=".env"
+> "$ENV_FILE"
 
 if [[ "$ALERT_ENABLE" =~ ^[Yy]$ ]]; then
   echo "Choose alert platform:"
@@ -97,126 +99,27 @@ if [[ "$ALERT_ENABLE" =~ ^[Yy]$ ]]; then
   echo -n "Enter choice [1-2]: "
   read ALERT_CHOICE
 
-  mkdir -p grafana/provisioning/alerting
-
   if [[ "$ALERT_CHOICE" == "1" ]]; then
     echo -n "Enter your Telegram bot token: "
     read TELE_TOKEN
     echo -n "Enter your Telegram chat ID: "
     read TELE_CHATID
-
-    cat > grafana/provisioning/alerting/01-contact-points.yaml <<EOF
-apiVersion: 1
-contactPoints:
-  - orgId: 1
-    name: telegram
-    receivers:
-      - uid: telegram-receiver
-        type: telegram
-        settings:
-          bottoken: "$TELE_TOKEN"
-          chatid: "$TELE_CHATID"
-          disable_notification: false
-          disable_web_page_preview: false
-          protect_content: false
-        disableResolveMessage: false
-EOF
-
-    RECEIVER_NAME="telegram"
-    RECEIVER_UID="telegram-receiver"
-
+    echo "ALERT_TYPE=telegram" >> "$ENV_FILE"
+    echo "TELEGRAM_BOT_TOKEN=$TELE_TOKEN" >> "$ENV_FILE"
+    echo "TELEGRAM_CHAT_ID=$TELE_CHATID" >> "$ENV_FILE"
+    echo "✅ Telegram alert configured in .env"
   elif [[ "$ALERT_CHOICE" == "2" ]]; then
     echo -n "Enter your Slack webhook URL: "
     read SLACK_WEBHOOK
-
-    cat > grafana/provisioning/alerting/01-contact-points.yaml <<EOF
-apiVersion: 1
-contactPoints:
-  - orgId: 1
-    name: slack
-    receivers:
-      - uid: slack-receiver
-        type: slack
-        settings:
-          url: "$SLACK_WEBHOOK"
-        disableResolveMessage: false
-EOF
-
-    RECEIVER_NAME="slack"
-    RECEIVER_UID="slack-receiver"
-
+    echo "ALERT_TYPE=slack" >> "$ENV_FILE"
+    echo "SLACK_WEBHOOK=$SLACK_WEBHOOK" >> "$ENV_FILE"
+    echo "✅ Slack alert configured in .env"
   else
     echo "❌ Invalid choice. Skipping alert setup."
-    exit 0
   fi
-
-  cat > grafana/provisioning/alerting/02-alert-rules.yaml <<EOF
-apiVersion: 1
-groups:
-  - orgId: 1
-    name: Stylus Alerts
-    folder: Stylus Alerts
-    interval: 10s
-    rules:
-      - uid: stylus-error
-        title: Stylus Alerts
-        condition: C
-        data:
-          - refId: A
-            queryType: table
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: stylus-cli
-            model:
-              rawSql: |
-                SELECT timestamp AS time,
-                       COUNT(*) AS value
-                FROM logs
-                WHERE lower(output) LIKE '%error%'
-                  AND timestamp >= strftime('%s', 'now', '-5 minutes')
-                GROUP BY strftime('%Y-%m-%d %H:%M', timestamp, 'unixepoch')
-                HAVING COUNT(*) > 0
-              format: table
-              refId: A
-          - refId: B
-            datasourceUid: __expr__
-            model:
-              expression: A
-              type: reduce
-              reducer: last
-              refId: B
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              expression: B
-              type: threshold
-              conditions:
-                - evaluator:
-                    type: gt
-                    params: [0]
-                  operator:
-                    type: and
-                  reducer:
-                    type: last
-                  query:
-                    params: [C]
-        noDataState: NoData
-        execErrState: Error
-        for: 10s
-        annotations:
-          summary: "🚨 Stylus CLI Error — Command failed"
-          description: |
-            Stylus CLI returned an error.
-            Please check the logs for more information.
-        isPaused: false
-        notification_settings:
-          receiver: $RECEIVER_NAME
-EOF
-
-  echo "✅ $RECEIVER_NAME alert rule and contact point created."
 else
-  echo "⏭️ Skipping alert integration."
+  echo "ALERT_TYPE=none" >> "$ENV_FILE"
+  echo "⏭️ Skipping alert integration. No alerts will be sent."
 fi
 
 # 9. Start Docker Services
